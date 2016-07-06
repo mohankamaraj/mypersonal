@@ -45,7 +45,7 @@
       <configuration>
         <archive>
           <manifest>
-            <mainClass>inventory.checkor.Application</mainClass>
+            <mainClass>mohan.inventorycheckor.Application</mainClass>
           </manifest>
         </archive>
         <descriptorRefs>
