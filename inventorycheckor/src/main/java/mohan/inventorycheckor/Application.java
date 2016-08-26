@@ -12,6 +12,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
@@ -88,7 +89,7 @@ public class Application
     	    	 Map<String, WalmartInventoryItem> map = new HashMap<String, WalmartInventoryItem>();
     	   	  	 for(int ii=0; ii<zipCodeArray.length;ii++){
     	   	  		 if(zipCodeArray[ii] != null){
-    	   	  			 WebElement itemnumber = driver.findElement(By.xpath("//input[@name='item_id']"));
+    	   	  			 WebElement itemnumber = driver.findElement(By.xpath("//input[@name='sku']"));
     	   	  			 itemnumber.clear();
     	   	  			 itemnumber.sendKeys(Long.toString(itemId));
     	   	  			 WebElement zip = driver.findElement(By.xpath("//input[@name='zip']"));
@@ -96,49 +97,61 @@ public class Application
     	   	  			 zip.sendKeys(zipCodeArray[ii]);
     	   	  			 driver.findElement(By.xpath("//input[@name='zip']")).submit();
     	   	  			 
-        	   	  		 WebElement itemNameElement = driver.findElement(By.xpath("//section[@id='main']/div[5]/a"));
+        	   	  		 WebElement itemNameElement = driver.findElement(By.xpath("//div[@class='post-content']/div[6]/div/h3"));
             	   	  	 String itemName = null;
             	   	  	 if(itemNameElement != null){
             	   	  		 itemName = itemNameElement.getText();
             	   	  	 }
     	   	  			 
-    	   	  			 List<WebElement> tr_collection =   driver.findElements(By.xpath("*//section[@id='main']//table//tbody//tr"));
-    	   	  			 //System.out.println("NUMBER OF results = " + tr_collection.size());
+    	   	  			 List<WebElement> tr_collection =   driver.findElements(By.xpath("*//div[@class='post-content']/table/tbody/tr"));
     	   	  			 int col_num;
-    	   	  			 
+    	   	  			 int row_num;
     	   	  			 if( tr_collection.size() > 0 ){
+    	   	  				 row_num = 1;
     	   	  				 for(WebElement trElement : tr_collection){
+    	   	  					 if(row_num == 1){
+    	   	  						 row_num++;
+    	   	  						 continue;
+    	   	  					 }
     		   		            List<WebElement> td_collection=trElement.findElements(By.xpath("td"));
     		   		            col_num = 1;
     		   		            //System.out.println("NUMBER OF COLUMNS="+td_collection.size());
     		   		            
-    		   		            if(td_collection.size() > 0 && td_collection.size() == 2){
+    		   		            if(td_collection.size() > 0 && td_collection.size() == 4){
     		   		            	WalmartInventoryItem inventoryItem = new WalmartInventoryItem();
     		   		            	inventoryItem.setItemId(Long.toString(itemId));
     		   		            	inventoryItem.setItemName(itemName);
     		   		            	for(WebElement tdElement : td_collection)
     		   	    	            {
-    		   		            		if(col_num == 1){
+    		   		            		if(col_num == 2){
     		   		            			String storeDetails = tdElement.getText();
     		   		            			String lines[] = storeDetails.split("\\r?\\n");
     		   		            			inventoryItem.setStoreName(lines[0]);
     		   		            			inventoryItem.setStoreAddress(lines[1]+", "+lines[2]);
     		   		            			inventoryItem.setPhone(lines[3]);
-    		   		            			String [] distanceArray = lines[4].split(" ");
-    		   		            			inventoryItem.setDistance(Double.parseDouble(distanceArray[0].trim()));
-    		   		            		}else if(col_num == 2){
+    		   		            			
+    		   		            			String distance = lines[4];
+    		   		            			if(StringUtils.isNoneBlank(distance)){
+    		   		            				distance = distance.replaceAll(" Miles\\)", "");
+    		   		            				distance = distance.replaceAll("\\(", "");
+    		   		            				inventoryItem.setDistance(Double.parseDouble(distance.trim()));
+    		   		            			}
+    		   		            		}else if(col_num == 3){
     		   		            			String stockDetails = tdElement.getText();
-    		   		            			String lines[] = stockDetails.split("\\r?\\n");
-    		   		            			String[] priceString = lines[0].split(" ");
-    		   		            			inventoryItem.setPrice(Double.parseDouble(priceString[1].trim()));
-    		   		            			inventoryItem.setStatus(lines[1]);
-    		   		            			inventoryItem.setEstQuantity(lines[2]);
+    		   		            			inventoryItem.setEstQuantity(stockDetails);
+    		   		            		}else if(col_num == 4){
+    		   		            			String priceString = tdElement.getText();
+    		   		            			if(StringUtils.isNotBlank(priceString)){
+    		   		            				priceString = priceString.replaceAll("\\$", "");
+    		   		            				inventoryItem.setPrice(Double.parseDouble(priceString.trim()));
+    		   		            			}
     		   		            		}
     		   		            		col_num++;
     		   	    	            }
     		   		            	
-    		   		            	map.put(inventoryItem.getStoreName(), inventoryItem);
+    		   		            	map.put(inventoryItem.getStoreName()+inventoryItem.getStoreAddress(), inventoryItem);
     		   		            }
+    		   		         
     		   		            
     	   	  				 } 
     	   	  			 }
@@ -200,13 +213,13 @@ public class Application
         cell = row.createCell(cellnum++);
         cell.setCellValue("Price");
         cell = row.createCell(cellnum++);
-        cell.setCellValue("Status");
-        cell = row.createCell(cellnum++);
         cell.setCellValue("Quantity");
         cell = row.createCell(cellnum++);
         cell.setCellValue("Distance");
         cell = row.createCell(cellnum++);
-        cell.setCellValue("Item Details");
+        cell.setCellValue("Item Id");
+        cell = row.createCell(cellnum++);
+        cell.setCellValue("Item Name");
         
         for(WalmartInventoryItem item : items){
         	cellnum = 0;
@@ -214,17 +227,17 @@ public class Application
         	Cell cellData = rowData.createCell(cellnum++);
         	cellData.setCellValue(rownum);
         	cellData = rowData.createCell(cellnum++);
-        	cellData.setCellValue(item.getStoreName()+" " + item.getStoreAddress()+"");
+        	cellData.setCellValue(/*item.getStoreName()+" " +*/ item.getStoreAddress()+"");
         	cellData = rowData.createCell(cellnum++);
         	cellData.setCellValue(item.getPrice());
-        	cellData = rowData.createCell(cellnum++);
-        	cellData.setCellValue(item.getStatus());
         	cellData = rowData.createCell(cellnum++);
         	cellData.setCellValue(item.getEstQuantity());
         	cellData = rowData.createCell(cellnum++);
         	cellData.setCellValue(item.getDistance());
         	cellData = rowData.createCell(cellnum++);
-        	cellData.setCellValue(item.getItemId()+"|"+item.getItemName());
+        	cellData.setCellValue(item.getItemId());
+        	cellData = rowData.createCell(cellnum++);
+        	cellData.setCellValue(item.getItemName());
 	  	}
         
     }

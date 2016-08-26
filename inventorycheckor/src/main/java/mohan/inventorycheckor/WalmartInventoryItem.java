@@ -7,7 +7,6 @@ public class WalmartInventoryItem {
 	private String phone;
 	private double distance;
 	private double price;
-	private String status;
 	private String estQuantity;
 	private String itemId;
 	private String itemName;
@@ -54,12 +53,6 @@ public class WalmartInventoryItem {
 	public void setPrice(double price) {
 		this.price = price;
 	}
-	public String getStatus() {
-		return status;
-	}
-	public void setStatus(String status) {
-		this.status = status;
-	}
 	public String getEstQuantity() {
 		return estQuantity;
 	}
@@ -71,7 +64,7 @@ public class WalmartInventoryItem {
 		StringBuilder storeDetails = new StringBuilder();
 		storeDetails.append(this.getStoreName() +" | " + this.getStoreAddress()+" | "+this.getPhone()+" | "+this.getDistance()+" miles");
 		storeDetails.append(":::::::::::");
-		storeDetails.append("$"+this.getPrice() +" | " + this.getStatus()+" | "+this.getEstQuantity());
+		storeDetails.append("$"+this.getPrice() +" | " +this.getEstQuantity());
 		return storeDetails.toString();
 	}
 
