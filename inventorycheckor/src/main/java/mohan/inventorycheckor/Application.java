@@ -18,6 +18,7 @@ import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.openqa.selenium.By;
+import org.openqa.selenium.NoSuchElementException;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.firefox.FirefoxDriver;
@@ -89,21 +90,30 @@ public class Application
     	    	 Map<String, WalmartInventoryItem> map = new HashMap<String, WalmartInventoryItem>();
     	   	  	 for(int ii=0; ii<zipCodeArray.length;ii++){
     	   	  		 if(zipCodeArray[ii] != null){
-    	   	  			 WebElement itemnumber = driver.findElement(By.xpath("//input[@name='sku']"));
-    	   	  			 itemnumber.clear();
-    	   	  			 itemnumber.sendKeys(Long.toString(itemId));
-    	   	  			 WebElement zip = driver.findElement(By.xpath("//input[@name='zip']"));
-    	   	  			 zip.clear();
-    	   	  			 zip.sendKeys(zipCodeArray[ii]);
-    	   	  			 driver.findElement(By.xpath("//input[@name='zip']")).submit();
+	    	   	  		 List<WebElement> tr_collection = null;
+		   	  			 String itemName = null;
     	   	  			 
-        	   	  		 WebElement itemNameElement = driver.findElement(By.xpath("//div[@class='post-content']/div[6]/div/h3"));
-            	   	  	 String itemName = null;
-            	   	  	 if(itemNameElement != null){
-            	   	  		 itemName = itemNameElement.getText();
-            	   	  	 }
+    	   	  			 try{
+    	   	  				 WebElement itemnumber = driver.findElement(By.xpath("//input[@name='sku']"));
+		   	   	  			 itemnumber.clear();
+		   	   	  			 itemnumber.sendKeys(Long.toString(itemId));
+		   	   	  			 WebElement zip = driver.findElement(By.xpath("//input[@name='zip']"));
+		   	   	  			 zip.clear();
+		   	   	  			 zip.sendKeys(zipCodeArray[ii]);
+		   	   	  			 driver.findElement(By.xpath("//input[@name='zip']")).submit();
+		   	   	  			 
+		       	   	  		 WebElement itemNameElement = driver.findElement(By.xpath("//div[@class='post-content']/div[6]/div/h3"));
+		           	   	  	 
+		           	   	  	 if(itemNameElement != null){
+		           	   	  		 itemName = itemNameElement.getText();
+		           	   	  	 }
+		   	   	  			 
+		   	   	  			 tr_collection =   driver.findElements(By.xpath("*//div[@class='post-content']/table/tbody/tr")); 
+    	   	  			 }catch(NoSuchElementException elementException){
+	    	   	  			 System.err.println("elementException :"+elementException.getMessage());
+		   	  				 continue;
+    	   	  			 }
     	   	  			 
-    	   	  			 List<WebElement> tr_collection =   driver.findElements(By.xpath("*//div[@class='post-content']/table/tbody/tr"));
     	   	  			 int col_num;
     	   	  			 int row_num;
     	   	  			 if( tr_collection.size() > 0 ){
@@ -174,7 +184,7 @@ public class Application
     			for(WalmartInventoryItem item : items){
     		  		 System.out.println(item.toString());
     		  	}
-    			prepareExcelSheet(workbook, items);
+    			prepareExcelSheet(workbook, items, itemId);
     			System.out.println("*************************************************************************************************************************");
     			System.out.println("*************************************************************************************************************************");
     			System.out.println("*************************************************************************************************************************");
@@ -201,8 +211,8 @@ public class Application
      
      }
     
-    private static void prepareExcelSheet(XSSFWorkbook workbook, List<WalmartInventoryItem> items){
-    	XSSFSheet sheet = workbook.createSheet(items.get(0).getItemId());
+    private static void prepareExcelSheet(XSSFWorkbook workbook, List<WalmartInventoryItem> items, long itemId){
+    	XSSFSheet sheet = workbook.createSheet(Long.toString(itemId));
         int rownum = 0;
         int cellnum = 0;
         Row row = sheet.createRow(rownum++);	
@@ -221,11 +231,12 @@ public class Application
         cell = row.createCell(cellnum++);
         cell.setCellValue("Item Name");
         
+        int sNo = 0;
         for(WalmartInventoryItem item : items){
         	cellnum = 0;
         	Row rowData = sheet.createRow(rownum++);	
         	Cell cellData = rowData.createCell(cellnum++);
-        	cellData.setCellValue(rownum);
+        	cellData.setCellValue(sNo);
         	cellData = rowData.createCell(cellnum++);
         	cellData.setCellValue(/*item.getStoreName()+" " +*/ item.getStoreAddress()+"");
         	cellData = rowData.createCell(cellnum++);
@@ -238,6 +249,7 @@ public class Application
         	cellData.setCellValue(item.getItemId());
         	cellData = rowData.createCell(cellnum++);
         	cellData.setCellValue(item.getItemName());
+        	sNo++;
 	  	}
         
     }

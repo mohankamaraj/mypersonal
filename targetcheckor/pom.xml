@@ -38,6 +38,7 @@
     </exclusions>
 	</dependency>
   </dependencies>
+  <!-- mvn clean compile assembly:single -->
   <build>
   <plugins>
     <plugin>
@@ -45,7 +46,7 @@
       <configuration>
         <archive>
           <manifest>
-            <mainClass>mohan.targetcheckor.Application</mainClass>
+            <mainClass>mohan.inventorycheckor.Application</mainClass>
           </manifest>
         </archive>
         <descriptorRefs>

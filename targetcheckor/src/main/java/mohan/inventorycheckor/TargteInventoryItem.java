@@ -3,6 +3,7 @@ package mohan.inventorycheckor;
 public class TargteInventoryItem {
 	
 	private String storeName;
+	private String storeAddress;
 	private String phone;
 	private double distance;
 	private double price;
@@ -12,6 +13,20 @@ public class TargteInventoryItem {
 	
 	public String getStoreName() {
 		return storeName;
+	}
+
+
+	
+
+	public String getStoreAddress() {
+		return storeAddress;
+	}
+
+
+
+
+	public void setStoreAddress(String storeAddress) {
+		this.storeAddress = storeAddress;
 	}
 
 

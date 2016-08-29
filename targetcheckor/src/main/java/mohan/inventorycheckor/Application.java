@@ -18,6 +18,7 @@ import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.openqa.selenium.By;
+import org.openqa.selenium.NoSuchElementException;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.firefox.FirefoxDriver;
@@ -83,25 +84,33 @@ public class Application
     	    	 Map<String, TargteInventoryItem> map = new HashMap<String, TargteInventoryItem>();
     	   	  	 for(int ii=0; ii<zipCodeArray.length;ii++){
     	   	  		 if(zipCodeArray[ii] != null){
-    	   	  			 WebElement itemnumber = driver.findElement(By.xpath("//input[@name='sku']"));
-    	   	  			 itemnumber.clear();
-    	   	  			 itemnumber.sendKeys(itemId);
-    	   	  			 WebElement zip = driver.findElement(By.xpath("//input[@name='zip']"));
-    	   	  			 zip.clear();
-    	   	  			 zip.sendKeys(zipCodeArray[ii]);
-    	   	  			 driver.findElement(By.xpath("//input[@name='zip']")).submit();
-    	   	  			 
-        	   	  		 WebElement itemNameElement = driver.findElement(By.xpath("//section[@id='content']/div/div/div/div"));
-            	   	  	 String itemName = null;
-            	   	  	 if(itemNameElement != null){
-            	   	  		 itemName = itemNameElement.getText();
-            	   	  	 }
-    	   	  			 
-    	   	  			 List<WebElement> tr_collection =   driver.findElements(By.xpath("*//section[@id='content']//table//tbody//tr"));
+    	   	  			 List<WebElement> tr_collection = null;
+    	   	  			 String itemName = null;
+    	   	  			 try{
+	    	   	  			 WebElement itemnumber = driver.findElement(By.xpath("//input[@name='sku']"));
+	    	   	  			 itemnumber.clear();
+	    	   	  			 itemnumber.sendKeys(itemId);
+	    	   	  			 WebElement zip = driver.findElement(By.xpath("//input[@name='zip']"));
+	    	   	  			 zip.clear();
+	    	   	  			 zip.sendKeys(zipCodeArray[ii]);
+	    	   	  			 driver.findElement(By.xpath("//input[@name='zip']")).submit();
+	    	   	  			 
+	    	   	  			 WebElement itemNameElement = driver.findElement(By.xpath("//div[@class='post-content']/div[6]/div/h3"));
+	            	   	  	 
+	            	   	  	 if(itemNameElement != null){
+	            	   	  		 itemName = itemNameElement.getText();
+	            	   	  	 }
+	    	   	  			 
+	            	   	  	 tr_collection =   driver.findElements(By.xpath("*//div[@class='post-content']/table/tbody/tr"));
+    	   	  			 }catch(NoSuchElementException elementException){
+    	   	  				 System.err.println("elementException :"+elementException.getMessage());
+    	   	  				 continue;
+    	   	  			 }
+    	   	  			
     	   	  			 //System.out.println("NUMBER OF results = " + tr_collection.size());
     	   	  			 int col_num = 1;
     	   	  			 int rowNumber = 1;
-    	   	  			 if( tr_collection.size() > 0 ){
+    	   	  			 if( tr_collection != null && tr_collection.size() > 0 ){
     	   	  				 for(WebElement trElement : tr_collection){
     	   	  					 if(rowNumber ==1){
     	   	  						 rowNumber++;
@@ -120,25 +129,31 @@ public class Application
     		   		            	for(WebElement tdElement : td_collection)
     		   	    	            {
     		   		            		
-    		   		            		System.out.println("tdElement.getText()   =   "+tdElement.getText());
+    		   		            		//System.out.println("tdElement.getText()   =   "+tdElement.getText());
     		   		            		if(col_num == 2){
     		   		            			String storeDetails = tdElement.getText();
     		   		            			String lines[] = storeDetails.split("\\r?\\n");
     		   		            			inventoryItem.setStoreName(lines[0]);
-    		   		            			inventoryItem.setPhone(lines[1]);
+    		   		            			inventoryItem.setStoreAddress(lines[1]+", "+lines[2]);
+    		   		            			inventoryItem.setPhone(lines[3]);
     		   		            			
-    		   		            			String distance = lines[2];
+    		   		            			String distance = lines[4];
     		   		            			if(StringUtils.isNoneBlank(distance)){
     		   		            				distance = distance.replaceAll(" Miles\\)", "");
     		   		            				distance = distance.replaceAll("\\(", "");
-    		   		            				
+    		   		            				inventoryItem.setDistance(Double.parseDouble(distance.trim()));
     		   		            			}
-    		   		            			inventoryItem.setDistance(Double.parseDouble(distance.trim()));
     		   		            		}else if(col_num == 4){
     		   		            			String quantity = tdElement.getText();
+    		   		            			if(quantity.equalsIgnoreCase("N.A.")){
+    		   		            				quantity = "0";
+    		   		            			}
     		   		            			inventoryItem.setSellableQuantity(Double.parseDouble(quantity.trim()));
     		   	    	            	}else if(col_num == 5){
     		   		            			String priceString = tdElement.getText();
+    		   		            			if(priceString.equalsIgnoreCase("$N.A.")){
+    		   		            				priceString = "-1";
+    		   		            			}
     		   		            			priceString = priceString.trim();
     		   		            			priceString = priceString.replaceAll("\\$", "");
     		   		            			inventoryItem.setPrice(Double.parseDouble(priceString));
@@ -170,7 +185,7 @@ public class Application
     			for(TargteInventoryItem item : items){
     		  		 System.out.println(item.toString());
     		  	}
-    			prepareExcelSheet(workbook, items);
+    			prepareExcelSheet(workbook, items, itemId);
     			System.out.println("*************************************************************************************************************************");
     			System.out.println("*************************************************************************************************************************");
     			System.out.println("*************************************************************************************************************************");
@@ -197,9 +212,9 @@ public class Application
      
      }
     
-    private static void prepareExcelSheet(XSSFWorkbook workbook, List<TargteInventoryItem> items){
-    	XSSFSheet sheet = workbook.createSheet(items.get(0).getItemId());
-        int rownum = 0;
+    private static void prepareExcelSheet(XSSFWorkbook workbook, List<TargteInventoryItem> items, String itemId){
+    	XSSFSheet sheet = workbook.createSheet(itemId);
+    	int rownum = 0;
         int cellnum = 0;
         Row row = sheet.createRow(rownum++);	
         Cell cell = row.createCell(cellnum++);
@@ -213,15 +228,18 @@ public class Application
         cell = row.createCell(cellnum++);
         cell.setCellValue("Distance");
         cell = row.createCell(cellnum++);
-        cell.setCellValue("Item Details");
+        cell.setCellValue("Item Id");
+        cell = row.createCell(cellnum++);
+        cell.setCellValue("Item Name");
         
+        int sNo = 0;
         for(TargteInventoryItem item : items){
         	cellnum = 0;
         	Row rowData = sheet.createRow(rownum++);	
         	Cell cellData = rowData.createCell(cellnum++);
-        	cellData.setCellValue(rownum);
+        	cellData.setCellValue(sNo);
         	cellData = rowData.createCell(cellnum++);
-        	cellData.setCellValue(item.getStoreName()+" " + item.getPhone());
+        	cellData.setCellValue(/*item.getStoreName()+" " +*/ item.getStoreAddress()+"");
         	cellData = rowData.createCell(cellnum++);
         	cellData.setCellValue(item.getPrice());
         	cellData = rowData.createCell(cellnum++);
@@ -229,7 +247,10 @@ public class Application
         	cellData = rowData.createCell(cellnum++);
         	cellData.setCellValue(item.getDistance());
         	cellData = rowData.createCell(cellnum++);
-        	cellData.setCellValue(item.getItemId()+"|"+item.getItemName());
+        	cellData.setCellValue(item.getItemId());
+        	cellData = rowData.createCell(cellnum++);
+        	cellData.setCellValue(item.getItemName());
+        	sNo++;
 	  	}
         
     }
